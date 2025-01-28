@@ -256,79 +256,7 @@ def get_data(filters):
                                     
                         """.format(account_name=account_name ,from_date=from_date, to_date=to_date), as_dict=True)
                 
-            if branch:
             
-                expenses = frappe.db.sql("""
-                        SELECT 
-
-                            err.name AS voucher_no,
-                            errd.parenttype AS voucher_type,
-
-                            errd.rate AS purchase_amount,
-
-                            errd.qty AS qty,
-
-                            errd.custom_tax_number AS tax_id,
-
-                            errd.custom_supplier AS supplier,
-
-                            errd.custom_invoice_date AS  invoice_date,
-
-                            errd.custom_invoice_number,
-                            err.employee ,
-                            errd.default_account AS expense_type,
-                            (errd.rate * 0.15) AS purchase_tax_amount,
-                            (errd.rate + (errd.rate * 0.15)) AS purchase_grand_total
-
-                        FROM 
-                            `tabExpense Reimbursement Request Details` AS errd
-                            INNER JOIN `tabExpense Reimbursement Request` AS err ON errd.parent = err.name
-                            INNER JOIN `tabExpense Taxes and Charges` AS etc ON etc.parent = err.name
-                        WHERE 
-                            etc.parenttype = 'Expense Reimbursement Request'
-                            AND etc.docstatus = 1
-                            AND etc.account_head = '{account_name}'
-                            AND err.branch = '{branch}'
-                                        
-                            AND err.posting_date BETWEEN '{from_date}' AND '{to_date}'
-                            AND errd.item_tax_template = "KSA VAT 15% - BC"
-                                         
-                                    
-                        """.format(account_name=account_name,branch=branch ,from_date=from_date, to_date=to_date), as_dict=True)
-            else:
-                expenses = frappe.db.sql("""
-                        SELECT 
-                            err.name AS voucher_no,
-                            errd.parenttype AS voucher_type,
-
-                            errd.rate AS purchase_amount,
-
-                            errd.qty AS qty,
-
-                            errd.custom_tax_number AS tax_id,
-
-                            errd.custom_supplier  AS supplier,
-
-                            errd.custom_invoice_date  AS invoice_date,
-
-                            errd.custom_invoice_number ,
-                            err.employee,
-                            errd.default_account AS expense_type,
-                            (errd.rate * 0.15) AS purchase_tax_amount,
-                            (errd.rate + (errd.rate * 0.15)) AS purchase_grand_total
-
-                        FROM 
-                            `tabExpense Reimbursement Request Details` AS errd
-                            INNER JOIN `tabExpense Reimbursement Request` AS err ON errd.parent = err.name
-                            INNER JOIN `tabExpense Taxes and Charges` AS etc ON etc.parent = err.name
-                        WHERE 
-                            etc.parenttype = 'Expense Reimbursement Request'
-                            AND etc.docstatus = 1
-                            AND etc.account_head = '{account_name}'                                        
-                            AND err.posting_date BETWEEN '{from_date}' AND '{to_date}'
-                            AND errd.item_tax_template = "KSA VAT 15% - BC"
-                                    
-                        """.format(account_name=account_name,from_date=from_date, to_date=to_date), as_dict=True)
             if branch:
             
                 gl = frappe.db.sql("""
@@ -374,7 +302,7 @@ def get_data(filters):
                         """.format(account_name=account_name,  from_date=from_date, to_date=to_date), as_dict=True)
                 
             
-            data = purchase + expenses + gl
+            data = purchase  + gl
             for item in data:
                 item["total_tax_amount"] = item.get("purchase_grand_total" , 0) + item.get("balance", 0)
        
