@@ -191,116 +191,62 @@ def get_data(filters):
     data = []
     to_date = filters.get("to_date")
     from_date = filters.get("from_date")
-    branch = filters.get("branch")
 
     for title, account_name in [("٪ المبيعات الخاضعة للضريبة ١٥","210401 - VAT 15% - BC"),
                                 ("٪ المبيعات الخاضعة للضريبة ٥", "VAT 5% - BC")]:
         if filters.get("transactions") == "Sales":
         
-            if branch:
-                data = frappe.db.sql("""
-                    SELECT stc.tax_amount, si.name AS invoice,si.posting_date AS date, si.customer,si.tax_id,si.grand_total, (si.grand_total - stc.tax_amount) AS amount
-                    FROM `tabSales Taxes and Charges` AS stc
-                    INNER JOIN `tabSales Invoice` AS si ON stc.parent = si.name
-                    WHERE stc.parenttype = 'Sales Invoice'
-                    AND stc.docstatus = 1
-                    AND stc.account_head = %s
-                    AND si.branch = %s
-                    AND posting_date BETWEEN %s AND %s
-                """, (account_name, branch, from_date, to_date), as_dict=True)
-            else:
-                data = frappe.db.sql("""
-                    SELECT stc.tax_amount, si.name AS invoice, si.posting_date AS date,si.customer,si.tax_id, si.grand_total, (si.grand_total - stc.tax_amount) AS amount
-                    FROM `tabSales Taxes and Charges` AS stc
-                    INNER JOIN `tabSales Invoice` AS si ON stc.parent = si.name
-                    WHERE stc.parenttype = 'Sales Invoice'
-                    AND stc.docstatus = 1
-                    AND stc.account_head = %s
-                    AND posting_date BETWEEN %s AND %s
-                """, (account_name, from_date, to_date), as_dict=True)
+            
+            data = frappe.db.sql("""
+                SELECT stc.tax_amount, si.name AS invoice, si.posting_date AS date,si.customer,si.tax_id, si.grand_total, (si.grand_total - stc.tax_amount) AS amount
+                FROM `tabSales Taxes and Charges` AS stc
+                INNER JOIN `tabSales Invoice` AS si ON stc.parent = si.name
+                WHERE stc.parenttype = 'Sales Invoice'
+                AND stc.docstatus = 1
+                AND stc.account_head = %s
+                AND posting_date BETWEEN %s AND %s
+            """, (account_name, from_date, to_date), as_dict=True)
 
 
         
         else:
-            if branch:
-                purchase  = frappe.db.sql("""
-                        SELECT 
-                            stc.tax_amount AS purchase_tax_amount,si.posting_date AS invoice_date,si.supplier,si.tax_id, si.name AS voucher_no,stc.parenttype AS  voucher_type,si.grand_total AS purchase_grand_total ,( si.grand_total - stc.tax_amount) AS purchase_amount,pii.item_code AS expense_type, si.bill_no
-                        FROM 
-                            `tabPurchase Taxes and Charges` AS stc
-                            INNER JOIN `tabPurchase Invoice` AS si ON stc.parent = si.name
-                            INNER JOIN `tabPurchase Invoice Item` AS pii ON si.name = pii.parent
-                        WHERE 
-                            stc.parenttype = 'Purchase Invoice'
-                            AND stc.docstatus = 1
-                            AND stc.account_head = '{account_name}'
-                            AND si.branch = '{branch}'              
-                            AND si.posting_date BETWEEN '{from_date}' AND '{to_date}'
-                            AND pii.idx = 1
-                                    
-                        """.format(account_name=account_name,branch=branch ,from_date=from_date, to_date=to_date), as_dict=True)
-            else:
-                purchase  = frappe.db.sql("""
-                        SELECT 
-                            stc.tax_amount AS purchase_tax_amount, si.supplier,si.posting_date AS invoice_date, si.tax_id, si.name AS voucher_no,stc.parenttype AS  voucher_type ,si.grand_total AS purchase_grand_total ,( si.grand_total - stc.tax_amount) AS purchase_amount,pii.item_code AS expense_type, si.bill_no
-                        FROM 
-                            `tabPurchase Taxes and Charges` AS stc
-                            INNER JOIN `tabPurchase Invoice` AS si ON stc.parent = si.name
-                                          INNER JOIN `tabPurchase Invoice Item` AS pii ON si.name = pii.parent
-                        WHERE 
-                            stc.parenttype = 'Purchase Invoice'
-                            AND stc.docstatus = 1
-                            AND stc.account_head = '{account_name}'                                                
-                            AND si.posting_date BETWEEN '{from_date}' AND '{to_date}'
-                                          AND pii.idx = 1
-                                    
-                        """.format(account_name=account_name ,from_date=from_date, to_date=to_date), as_dict=True)
-                
-            
-            if branch:
-            
-                gl = frappe.db.sql("""
-                            SELECT 
-                                gl.name AS gl_entry, 
-                                   
-                                gl.voucher_no AS voucher_no, 
-                                gl.voucher_type AS voucher_type,
-                                   
-                                gl.debit AS debit_amount,
-                                gl.credit AS credit_amount,
-                                   (gl.debit - gl.credit) AS balance
-                            FROM 
-                                `tabGL Entry` AS gl
-                            JOIN
-                                `tabJournal Entry` AS je ON gl.voucher_no = je.name
-                            WHERE 
+            purchase  = frappe.db.sql("""
+                    SELECT 
+                        stc.tax_amount AS purchase_tax_amount, si.supplier,si.posting_date AS invoice_date, si.tax_id, si.name AS voucher_no,stc.parenttype AS  voucher_type ,si.grand_total AS purchase_grand_total ,( si.grand_total - stc.tax_amount) AS purchase_amount,pii.item_code AS expense_type, si.bill_no
+                    FROM 
+                        `tabPurchase Taxes and Charges` AS stc
+                        INNER JOIN `tabPurchase Invoice` AS si ON stc.parent = si.name
+                                        INNER JOIN `tabPurchase Invoice Item` AS pii ON si.name = pii.parent
+                    WHERE 
+                        stc.parenttype = 'Purchase Invoice'
+                        AND stc.docstatus = 1
+                        AND stc.account_head = '{account_name}'                                                
+                        AND si.posting_date BETWEEN '{from_date}' AND '{to_date}'
+                                        AND pii.idx = 1
                                 
-                                gl.is_cancelled = 0 
-                                AND gl.account = '{account_name}'
-                                AND gl.voucher_type = 'Journal Entry'
-                                AND je.custom_branch = '{branch}'  
-                                AND gl.posting_date BETWEEN '{from_date}' AND '{to_date}'
-                        """.format(account_name=account_name, branch=branch, from_date=from_date, to_date=to_date), as_dict=True)
-            else:
-                gl = frappe.db.sql("""
-                            SELECT 
-                                gl.name AS gl_entry, 
-                                gl.voucher_no AS voucher_no, 
-                                gl.voucher_type AS voucher_type,
-                                gl.debit AS debit_amount,
-                                gl.credit AS credit_amount,
-                                   (gl.debit - gl.credit) AS balance
-                            FROM 
-                                `tabGL Entry` AS gl
-                            WHERE 
-                               
-                                gl.is_cancelled = 0 
-                                   
-                                AND gl.account = '{account_name}'
-                                AND gl.voucher_type = 'Journal Entry'
-                                AND gl.posting_date BETWEEN '{from_date}' AND '{to_date}'
-                        """.format(account_name=account_name,  from_date=from_date, to_date=to_date), as_dict=True)
-                
+                    """.format(account_name=account_name ,from_date=from_date, to_date=to_date), as_dict=True)
+            
+            
+            
+            gl = frappe.db.sql("""
+                        SELECT 
+                            gl.name AS gl_entry, 
+                            gl.voucher_no AS voucher_no, 
+                            gl.voucher_type AS voucher_type,
+                            gl.debit AS debit_amount,
+                            gl.credit AS credit_amount,
+                                (gl.debit - gl.credit) AS balance
+                        FROM 
+                            `tabGL Entry` AS gl
+                        WHERE 
+                            
+                            gl.is_cancelled = 0 
+                                
+                            AND gl.account = '{account_name}'
+                            AND gl.voucher_type = 'Journal Entry'
+                            AND gl.posting_date BETWEEN '{from_date}' AND '{to_date}'
+                    """.format(account_name=account_name,  from_date=from_date, to_date=to_date), as_dict=True)
+            
             
             data = purchase  + gl
             for item in data:

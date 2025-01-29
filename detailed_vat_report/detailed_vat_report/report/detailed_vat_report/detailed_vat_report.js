@@ -27,13 +27,5 @@ frappe.query_reports["Detailed Vat Report"] = {
 		 options:["Sales","Purchases"],
 		   reqd: 1,
 	   },
-	   {
-		 fieldname: "branch",
-		 label: __("Branch"),
-		 fieldtype: "Link",
-		 options:"Branch",
-		reqd: 0,
-	   },
-	   
 	 ]
 };
